@@ -157,8 +157,15 @@ function menu_block_block_view($delta = '') {
 function template_preprocess_menu_block_wrapper(&$variables) {
   $variables['classes_array'][] = 'menu-block-' . $variables['delta'];
   $variables['classes_array'][] = 'menu-name-' . $variables['config']['menu_name'];
-  $variables['classes_array'][] = 'parent-mlid-' . $variables['config']['parent_mlid'];
+  $variables['classes_array'][] = 'parent-mlid-' . menu_block_clean_css_identifier($variables['config']['parent_mlid']);
   $variables['classes_array'][] = 'menu-level-' . $variables['config']['level'];
+}
+
+/**
+ * A copy of drupal_clean_css_identifier() that cleans up colon characters.
+ */
+function menu_block_clean_css_identifier($identifier, $filter = array(' ' => '-', '_' => '-', '/' => '-', '[' => '-', ']' => '', ':' => '-')) {
+  return drupal_clean_css_identifier($identifier, $filter);
 }
 
 /**

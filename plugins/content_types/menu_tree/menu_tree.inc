@@ -129,6 +129,9 @@ function menu_block_menu_tree_content_type_edit_form_submit(&$form, &$form_state
   foreach (array_keys($form_state['subtype']['defaults']) as $key) {
     $form_state['conf'][$key] = $form_state['values'][$key];
   }
+  if (!empty($form_state['values']['parent'])) {
+    list($form_state['conf']['menu_name'], $form_state['conf']['parent_mlid']) = explode(':', $form_state['values']['parent']);
+  }
 }
 
 /**

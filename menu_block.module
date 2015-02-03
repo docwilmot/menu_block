@@ -816,3 +816,18 @@ function book_menu_block_get_sort_menus() {
     '/^book\-toc\-.+/' => t('Book navigation'),
   );
 }
+
+/**
+ * Implements hook_get_pane_links_alter().
+ */
+function menu_block_get_pane_links_alter(&$links, $pane, $content_type) {
+  if ($pane->type === 'menu_tree') {
+    if (in_array($pane->subtype, array_keys(menu_get_menus()))) {
+      $links['top'][] = array(
+        'title' => t('Edit menu links'),
+        'href' => url('admin/structure/menu/manage/' . $pane->subtype, array('absolute' => TRUE)),
+        'attributes' => array('target' => array('_blank')),
+      );
+    }
+  }
+}

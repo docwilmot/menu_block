@@ -24,16 +24,12 @@ function menu_block_uninstall() {
   variable_del('menu_block_menu_order');
 
   // Remove block configurations.
-  if (module_exists('block')) {
-    db_delete('block')
-      ->condition('module', 'menu_block')
-      ->execute();
-    db_delete('block_node_type')
-      ->condition('module', 'menu_block')
-      ->execute();
-    db_delete('block_role')
-      ->condition('module', 'menu_block')
-      ->execute();
+  foreach (array('block', 'block_node_type', 'block_role') as $table) {
+    if (db_table_exists($table)) {
+      db_delete($table)
+        ->condition('module', 'menu_block')
+        ->execute();
+    }
   }
 }
 

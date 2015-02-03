@@ -140,7 +140,7 @@ function _menu_block_form_block_admin_display_form_alter(&$form, $form_state) {
 /**
  * Menu callback: confirm deletion of menu blocks.
  */
-function menu_block_delete($form, &$form_state, $delta = 0) {
+function menu_block_delete_form($form, &$form_state, $delta = 0) {
   $title = _menu_block_format_title(menu_block_get_config($delta));
   $form['block_title'] = array('#type' => 'hidden', '#value' => $title);
   $form['delta'] = array('#type' => 'hidden', '#value' => $delta);
@@ -151,30 +151,10 @@ function menu_block_delete($form, &$form_state, $delta = 0) {
 /**
  * Deletion of menu blocks.
  */
-function menu_block_delete_submit($form, &$form_state) {
+function menu_block_delete_form_submit($form, &$form_state) {
   // Remove the menu block configuration variables.
   $delta = $form_state['values']['delta'];
-  $block_ids = variable_get('menu_block_ids', array());
-  unset($block_ids[array_search($delta, $block_ids)]);
-  sort($block_ids);
-  variable_set('menu_block_ids', $block_ids);
-  variable_del("menu_block_{$delta}_title_link");
-  variable_del("menu_block_{$delta}_admin_title");
-  variable_del("menu_block_{$delta}_parent");
-  variable_del("menu_block_{$delta}_level");
-  variable_del("menu_block_{$delta}_follow");
-  variable_del("menu_block_{$delta}_depth");
-  variable_del("menu_block_{$delta}_expanded");
-  variable_del("menu_block_{$delta}_sort");
-
-  db_delete('block')
-    ->condition('module', 'menu_block')
-    ->condition('delta', $delta)
-    ->execute();
-  db_delete('block_role')
-    ->condition('module', 'menu_block')
-    ->condition('delta', $delta)
-    ->execute();
+  menu_block_delete($delta);
   drupal_set_message(t('The block "%name" has been removed.', array('%name' => $form_state['values']['block_title'])));
   cache_clear_all();
   $form_state['redirect'] = 'admin/structure/block';

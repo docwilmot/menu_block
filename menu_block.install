@@ -190,3 +190,10 @@ function menu_block_fix_custom_menus() {
 function menu_block_update_7202() {
   menu_block_fix_custom_menus();
 }
+
+/**
+ * Trigger a menu rebuild.
+ */
+function menu_block_update_7203() {
+  // Nothing needed here.
+}

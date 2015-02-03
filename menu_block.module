@@ -77,7 +77,7 @@ function menu_block_menu() {
     $items['admin/structure/block/delete-menu-block'] = array(
       'title' => 'Delete menu block',
       'page callback' => 'drupal_get_form',
-      'page arguments' => array('menu_block_delete'),
+      'page arguments' => array('menu_block_delete_form'),
       'access callback' => 'menu_block_access',
       'type' => MENU_CALLBACK,
       'file' => 'menu_block.admin.inc',
@@ -838,4 +838,76 @@ function menu_block_get_pane_links_alter(&$links, $pane, $content_type) {
       );
     }
   }
+}
+
+/**
+ * Implements hook_menu_delete().
+ */
+function menu_block_menu_delete($menu) {
+  // Delete menu block variables.
+  foreach (variable_get('menu_block_ids', array()) as $delta) {
+    $config = menu_block_get_config($delta);
+    if ($config['menu_name'] === $menu['menu_name']) {
+      menu_block_delete($delta);
+    }
+  }
+}
+
+/**
+ * Delete a menu block.
+ *
+ * @param string $delta
+ *   The delta of the menu block.
+ */
+function menu_block_delete($delta) {
+  // Since this used to be a form callback, prevent unintentional uses.
+  if (is_array($delta)) {
+    variable_set('menu_rebuild_needed', TRUE);
+    return;
+  }
+
+  $block_ids = variable_get('menu_block_ids', array());
+  $index = array_search($delta, $block_ids);
+  if ($index !== FALSE && $config = menu_block_get_config($delta)) {
+    module_invoke_all('menu_block_delete', $config);
+
+    // Remove the delta from the list of custom IDs.
+    unset($block_ids[$index]);
+    sort($block_ids);
+    variable_set('menu_block_ids', $block_ids);
+
+    // Remove all the individual variables.
+    variable_del("menu_block_{$delta}_title_link");
+    variable_del("menu_block_{$delta}_admin_title");
+    variable_del("menu_block_{$delta}_parent");
+    variable_del("menu_block_{$delta}_level");
+    variable_del("menu_block_{$delta}_follow");
+    variable_del("menu_block_{$delta}_depth");
+    variable_del("menu_block_{$delta}_expanded");
+    variable_del("menu_block_{$delta}_sort");
+  }
+}
+
+/**
+ * Implements hook_menu_block_delete() on behalf of block.module.
+ */
+function block_menu_block_delete(array $config) {
+  db_delete('block')
+    ->condition('module', 'menu_block')
+    ->condition('delta', $config['delta'])
+    ->execute();
+  db_delete('block_role')
+    ->condition('module', 'menu_block')
+    ->condition('delta', $config['delta'])
+    ->execute();
+}
+
+/**
+ * Implements hook_menu_block_delete() on behalf of node.module.
+ */
+function node_menu_block_delete(array $config) {
+  db_delete('block_node_type')
+    ->condition('module', 'menu_block')
+    ->condition('delta', $config['delta'])
+    ->execute();
 }

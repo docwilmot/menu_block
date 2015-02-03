@@ -476,12 +476,7 @@ function menu_block_get_title($render_title_as_link = TRUE) {
   elseif ($render_title_as_link) {
     // The tree's title is a menu item with a link.
     if (!empty($menu_item['in_active_trail'])) {
-      if (!empty($menu_item['localized_options']['attributes']['class'])) {
-        $menu_item['localized_options']['attributes']['class'][] = 'active-trail';
-      }
-      else {
-        $menu_item['localized_options']['attributes']['class'][] = 'active-trail';
-      }
+      $menu_item['localized_options']['attributes']['class'][] = 'active-trail';
     }
     $title = array(
       '#type' => 'link',

@@ -426,12 +426,13 @@ function menu_tree_build(&$config) {
   }
 
   // Get the default block name.
+  drupal_static_reset('menu_block_set_title');
   $menu_names = menu_block_get_all_menus();
   menu_block_set_title($menu_names[$config['menu_name']]);
 
   // Get the raw menu tree data.
   $tree = menu_tree_block_data($config);
-  $title = menu_block_get_title($config['title_link'], $config);
+  $title = menu_block_get_title($config['title_link']);
 
   // Create a renderable tree.
   $data = array();
@@ -464,12 +465,16 @@ function menu_tree_build(&$config) {
 function menu_block_get_title($render_title_as_link = TRUE) {
   $menu_item = menu_block_set_title();
 
-  // The tree's title is a menu title, a normal string.
+  if (empty($menu_item)) {
+    // menu_block_set_title() has not been used yet.
+    return '';
+  }
   if (is_string($menu_item)) {
+    // The tree's title is a menu title, a normal string.
     $title = array('#markup' => check_plain($menu_item));
   }
-  // The tree's title is a menu item with a link.
   elseif ($render_title_as_link) {
+    // The tree's title is a menu item with a link.
     if (!empty($menu_item['in_active_trail'])) {
       if (!empty($menu_item['localized_options']['attributes']['class'])) {
         $menu_item['localized_options']['attributes']['class'][] = 'active-trail';

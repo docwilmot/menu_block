@@ -194,8 +194,11 @@ function _menu_block_format_title($config) {
   }
   $menus = menu_block_get_all_menus();
   $menus[MENU_TREE__CURRENT_PAGE_MENU] = t('Current menu');
-  if (empty($config['menu_name']) || empty($menus[$config['menu_name']])) {
+  if (empty($config['menu_name'])) {
     $title = t('Unconfigured menu block');
+  }
+  elseif (!isset($menus[$config['menu_name']])) {
+    $title = t('Deleted/missing menu @menu', array('@menu' => $config['menu_name']));
   }
   else {
     // Show the configured levels in the block info

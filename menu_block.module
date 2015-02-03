@@ -135,18 +135,24 @@ function menu_block_help($path, $arg) {
  */
 function menu_block_block_view($delta = '') {
   $config = menu_block_get_config($delta);
-  $data = menu_tree_build($config);
-  // Add contextual links for this block.
-  if (!empty($data['content'])) {
-    if (in_array($config['menu_name'], array_keys(menu_get_menus()))) {
-      $data['content']['#contextual_links']['menu_block'] = array('admin/structure/menu/manage', array($config['menu_name']));
+  return menu_tree_build($config);
+}
+
+/**
+ * Implements hook_block_view_alter().
+ */
+function menu_block_block_view_alter(&$data, $block) {
+  // Add contextual links for menu blocks.
+  if ($block->module == 'menu_block' && !empty($data['content']['#config'])) {
+    $menu_name = $data['content']['#config']['menu_name'];
+    if (in_array($menu_name, array_keys(menu_get_menus()))) {
+      $data['content']['#contextual_links']['menu_block'] = array('admin/structure/menu/manage', array($menu_name));
     }
-    elseif (strpos($config['menu_name'], 'book-toc-') === 0) {
-      $node = str_replace('book-toc-', '', $config['menu_name']);
+    elseif (strpos($menu_name, 'book-toc-') === 0) {
+      $node = str_replace('book-toc-', '', $menu_name);
       $data['content']['#contextual_links']['menu_block'] = array('admin/content/book', array($node));
     }
   }
-  return $data;
 }
 
 /**

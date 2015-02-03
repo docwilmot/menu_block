@@ -259,8 +259,10 @@ function menu_block_get_config($delta = NULL) {
 /**
  * Gets the data structure representing a menu tree for the given configuration.
  *
- * @param $config
+ * @param array $config
  *   See the $config param of menu_tree_build().
+ *
+ * @return array
  */
 function menu_tree_block_data(&$config) {
   // Determine the max depth based on level and depth setting.
@@ -381,8 +383,8 @@ function menu_block_get_current_page_menu() {
 /**
  * Build a menu tree based on the provided configuration.
  *
- * @param $config
- *   array An array of configuration options that specifies how to build the
+ * @param array $config
+ *   An array of configuration options that specifies how to build the
  *   menu tree and its title.
  *   - delta: (string) The menu_block's block delta.
  *   - menu_name: (string) The machine name of the requested menu. Can also be
@@ -435,8 +437,9 @@ function menu_tree_build(&$config) {
   $data = array();
   $data['subject_array'] = $title;
   $data['subject'] = drupal_render($title);
-  $data['content']['#content'] = menu_block_tree_output($tree, $config);
-  if (!empty($data['content']['#content'])) {
+  $data['content'] = array();
+  if (!empty($tree) && $output = menu_block_tree_output($tree, $config)) {
+    $data['content']['#content'] = $output;
     $data['content']['#theme'] = array(
       'menu_block_wrapper__' . str_replace('-', '_', $config['delta']),
       'menu_block_wrapper__' . str_replace('-', '_', $config['menu_name']),
@@ -444,9 +447,6 @@ function menu_tree_build(&$config) {
     );
     $data['content']['#config'] = $config;
     $data['content']['#delta'] = $config['delta'];
-  }
-  else {
-    $data['content'] = '';
   }
 
   return $data;

@@ -177,8 +177,8 @@ function menu_block_clean_css_identifier($identifier, $filter = array(' ' => '-'
 /**
  * Returns a list of menu names implemented by all modules.
  *
- * @return
- *   array A list of menu names and titles.
+ * @return array
+ *   An array of menu titles keyed by menu machine name.
  */
 function menu_block_get_all_menus() {
   $all_menus = &drupal_static(__FUNCTION__);
@@ -206,11 +206,12 @@ function menu_block_get_all_menus() {
 /**
  * Returns the configuration for the requested block delta.
  *
- * @param $delta
- *   string The delta that uniquely identifies the block in the block system. If
+ * @param string $delta
+ *   The delta that uniquely identifies the block in the block system. If
  *   not specified, the default configuration will be returned.
- * @return
- *   array An associated array of configuration options.
+ *
+ * @return array
+ *   An associated array of configuration options.
  */
 function menu_block_get_config($delta = NULL) {
   $config = array(
@@ -264,7 +265,7 @@ function menu_block_get_config($delta = NULL) {
  *
  * @return array
  */
-function menu_tree_block_data(&$config) {
+function menu_tree_block_data(array &$config) {
   // Determine the max depth based on level and depth setting.
   $max_depth = ($config['depth'] == 0) ? NULL : min($config['level'] + $config['depth'] - 1, MENU_MAX_DEPTH);
 
@@ -328,6 +329,9 @@ function menu_tree_block_data(&$config) {
 
 /**
  * Returns the current page's menu.
+ *
+ * @return string|bool
+ *   The current page's menu, or FALSE if no menu applied.
  */
 function menu_block_get_current_page_menu() {
   // Retrieve the list of available menus.
@@ -403,13 +407,14 @@ function menu_block_get_current_page_menu() {
  *   - expanded: (boolean) Specifies if the entire tree be expanded or not.
  *   - sort: (boolean) Specifies if the tree should be sorted with the active
  *     trail at the top of the tree.
- * @return
- *   array An associative array containing several pieces of data.
+ *
+ * @return array
+ *   An associative array containing several pieces of data.
  *   - content: The tree as a renderable array.
  *   - subject: The title rendered as HTML.
  *   - subject_array: The title as a renderable array.
  */
-function menu_tree_build(&$config) {
+function menu_tree_build(array &$config) {
   // Retrieve the active menu item from the database.
   if ($config['menu_name'] == MENU_TREE__CURRENT_PAGE_MENU) {
     $config['menu_name'] = menu_block_get_current_page_menu();
@@ -456,19 +461,16 @@ function menu_tree_build(&$config) {
 /**
  * Retrieves the menu item to use for the tree's title.
  *
- * @param $render_title_as_link
+ * @param bool $render_title_as_link
  *   boolean A boolean that says whether to render the title as a link or a
  *   simple string.
- * @return
- *   array A renderable array containing the tree's title.
+ *
+ * @return array|string
+ *   A render array or string containing the tree's title.
  */
 function menu_block_get_title($render_title_as_link = TRUE) {
   $menu_item = menu_block_set_title();
 
-  if (empty($menu_item)) {
-    // menu_block_set_title() has not been used yet.
-    return '';
-  }
   if (is_string($menu_item)) {
     // The tree's title is a menu title, a normal string.
     $title = array('#markup' => check_plain($menu_item));
@@ -495,11 +497,14 @@ function menu_block_get_title($render_title_as_link = TRUE) {
 /**
  * Sets the menu item to use for the tree's title.
  *
- * @param $item
- *   array The menu item (an array) or the menu item's title as a string.
+ * @param array|string $item
+ *   The menu item (an array) or the menu item's title as a string.
+ *
+ * @return array|string
+ *   The saved title value.
  */
 function menu_block_set_title($item = NULL) {
-  $menu_item = &drupal_static(__FUNCTION__);
+  $menu_item = &drupal_static(__FUNCTION__, '');
 
   // Save the menu item.
   if (!is_null($item)) {
@@ -517,12 +522,10 @@ function menu_block_set_title($item = NULL) {
  * menu_tree_all_data() does not contain the active trail indicators. This is a
  * helper function that adds it back in.
  *
- * @param $tree
- *   array The menu tree.
- * @return
- *   void
+ * @param array $tree
+ *   The menu tree.
  */
-function menu_tree_add_active_path(&$tree) {
+function menu_tree_add_active_path(array &$tree) {
   // Grab any menu item to find the menu_name for this tree.
   $menu_item = current($tree);
   $tree_with_trail = menu_tree_page_data($menu_item['link']['menu_name']);
@@ -532,7 +535,7 @@ function menu_tree_add_active_path(&$tree) {
 
   // Find each key in the active trail.
   while ($tree_with_trail) {
-    foreach ($tree_with_trail AS $key => &$value) {
+    foreach ($tree_with_trail as $key => &$value) {
       if ($tree_with_trail[$key]['link']['in_active_trail'] && isset($subtree_pointer[$key])) {
         // Set the active trail info in the original tree.
         $subtree_pointer[$key]['link']['in_active_trail'] = TRUE;
@@ -551,13 +554,11 @@ function menu_tree_add_active_path(&$tree) {
 /**
  * Trim everything but the active trail in the tree.
  *
- * @param $tree
- *   array The menu tree to trim.
- * @return
- *   void
+ * @param array $tree
+ *   The menu tree to trim.
  */
-function menu_tree_trim_active_path(&$tree) {
-  foreach ($tree AS $key => &$value) {
+function menu_tree_trim_active_path(array &$tree) {
+  foreach ($tree as $key => &$value) {
     if (($tree[$key]['link']['in_active_trail'] || $tree[$key]['link']['expanded']) && $tree[$key]['below']) {
       // Continue in the subtree, if it exists.
       menu_tree_trim_active_path($tree[$key]['below']);
@@ -572,12 +573,10 @@ function menu_tree_trim_active_path(&$tree) {
 /**
  * Sort the active trail to the top of the tree.
  *
- * @param $tree
+ * @param array $tree
  *   array The menu tree to sort.
- * @return
- *   void
  */
-function menu_tree_sort_active_path(&$tree) {
+function menu_tree_sort_active_path(array &$tree) {
   module_load_include('inc', 'menu_block', 'menu_block.sort');
   _menu_tree_sort_active_path($tree);
 }
@@ -587,23 +586,21 @@ function menu_tree_sort_active_path(&$tree) {
  *
  * This function will follow the active menu trail to the specified level.
  *
- * @param $tree
- *   array The menu tree to prune.
- * @param $level
- *   int The level of the original tree that will start the pruned tree.
- * @param $parent_item
- *   array The menu item that should be used as the root of the tree.
- * @return
- *   void
+ * @param array $tree
+ *   The menu tree to prune.
+ * @param int $level
+ *   The level of the original tree that will start the pruned tree.
+ * @param array $parent_item
+ *   The menu item that should be used as the root of the tree.
  */
-function menu_tree_prune_tree(&$tree, $level, $parent_item = FALSE) {
+function menu_tree_prune_tree(array &$tree, $level, array $parent_item = NULL) {
   if (!empty($parent_item)) {
     // Prune the tree along the path to the menu item.
     for ($i = 1; $i <= MENU_MAX_DEPTH && $parent_item["p$i"] != '0'; $i++) {
       $plid = $parent_item["p$i"];
       $found_active_trail = FALSE;
       // Examine each element at this level for the ancestor.
-      foreach ($tree AS $key => &$value) {
+      foreach ($tree as $key => &$value) {
         if ($tree[$key]['link']['mlid'] == $plid) {
           menu_block_set_title($tree[$key]['link']);
           // Prune the tree to the children of this ancestor.
@@ -625,7 +622,7 @@ function menu_tree_prune_tree(&$tree, $level, $parent_item = FALSE) {
   for ($i = 1; $i < $level; $i++) {
     $found_active_trail = FALSE;
     // Examine each element at this level for the active trail.
-    foreach ($tree AS $key => &$value) {
+    foreach ($tree as $key => &$value) {
       // Also include the children of the front page.
       if ($tree[$key]['link']['in_active_trail'] || ($tree[$key]['link']['link_path'] == '<front>' && $is_front_page)) {
         // Get the title for the pruned tree.
@@ -647,14 +644,12 @@ function menu_tree_prune_tree(&$tree, $level, $parent_item = FALSE) {
 /**
  * Prune a tree so that it begins at the active menu item.
  *
- * @param $tree
- *   array The menu tree to prune.
- * @param $level
- *   string The level which the tree will be pruned to: 'active' or 'child'.
- * @return
- *   void
+ * @param array $tree
+ *   The menu tree to prune.
+ * @param string $level
+ *   The level which the tree will be pruned to: 'active' or 'child'.
  */
-function menu_tree_prune_active_tree(&$tree, $level) {
+function menu_tree_prune_active_tree(array &$tree, $level) {
   module_load_include('inc', 'menu_block', 'menu_block.follow');
   _menu_tree_prune_active_tree($tree, $level);
 }
@@ -662,21 +657,19 @@ function menu_tree_prune_active_tree(&$tree, $level) {
 /**
  * Prune a tree so it does not extend beyond the specified depth limit.
  *
- * @param $tree
- *   array The menu tree to prune.
- * @param $depth_limit
- *   int The maximum depth of the returned tree; must be a positive integer.
- * @return
- *   void
+ * @param array $tree
+ *   The menu tree to prune.
+ * @param int $depth_limit
+ *   The maximum depth of the returned tree; must be a positive integer.
  */
-function menu_tree_depth_trim(&$tree, $depth_limit) {
+function menu_tree_depth_trim(array &$tree, $depth_limit) {
   // Prevent invalid input from returning a trimmed tree.
   if ($depth_limit < 1) {
     return;
   }
 
   // Examine each element at this level to find any possible children.
-  foreach ($tree AS $key => &$value) {
+  foreach ($tree as $key => &$value) {
     if ($tree[$key]['below']) {
       if ($depth_limit > 1) {
         menu_tree_depth_trim($tree[$key]['below'], $depth_limit-1);
@@ -700,12 +693,14 @@ function menu_tree_depth_trim(&$tree, $depth_limit) {
  * This is a copy of menu_tree_output() with additional classes added to the
  * output.
  *
- * @param $tree
- *   array A data structure representing the tree as returned from menu_tree_data.
- * @return
- *   string The rendered HTML of that data structure.
+ * @param array $tree
+ *   A data structure representing the tree as returned from menu_tree_data.
+ * @param array $config
+ *
+ * @return array
+ *   The menu tree as a render array.
  */
-function menu_block_tree_output(&$tree, $config = array()) {
+function menu_block_tree_output(array &$tree, array $config = array()) {
   $build = array();
   $items = array();
 
@@ -810,7 +805,7 @@ function menu_block_tree_output(&$tree, $config = array()) {
  */
 function book_menu_block_get_menus() {
   $menus = array();
-  foreach (book_get_books() AS $book) {
+  foreach (book_get_books() as $book) {
     $menus[$book['menu_name']] = $book['title'];
   }
   return $menus;

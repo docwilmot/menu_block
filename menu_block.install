@@ -9,15 +9,12 @@
  */
 function menu_block_uninstall() {
   // Delete menu block variables.
+  drupal_load('module', 'menu_block');
+  $variable_keys = array_keys(menu_block_default_config());
   foreach (variable_get('menu_block_ids', array()) as $delta) {
-    variable_del("menu_block_{$delta}_title_link");
-    variable_del("menu_block_{$delta}_admin_title");
-    variable_del("menu_block_{$delta}_parent");
-    variable_del("menu_block_{$delta}_level");
-    variable_del("menu_block_{$delta}_follow");
-    variable_del("menu_block_{$delta}_depth");
-    variable_del("menu_block_{$delta}_expanded");
-    variable_del("menu_block_{$delta}_sort");
+    foreach ($variable_keys as $key) {
+      variable_del("menu_block_{$delta}_{$key}");
+    }
   }
   variable_del('menu_block_ids');
   variable_del('menu_block_suppress_core');

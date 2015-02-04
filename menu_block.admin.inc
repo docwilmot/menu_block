@@ -83,9 +83,9 @@ function menu_block_add_block_form_submit($form, &$form_state) {
  * Alters the block admin form to add delete links next to menu blocks.
  */
 function _menu_block_form_block_admin_display_form_alter(&$form, $form_state) {
-  $blocks = module_invoke_all('menu_block_blocks');
-  foreach (variable_get('menu_block_ids', array()) AS $delta) {
-    if (empty($blocks[$delta])) {
+  $exported = menu_block_get_exported_blocks();
+  foreach (variable_get('menu_block_ids', array()) as $delta) {
+    if (!isset($exported[$delta])) {
       $form['blocks']['menu_block_' . $delta]['delete'] = array('#type' => 'link', '#title' => t('delete'), '#href' => 'admin/structure/block/delete-menu-block/' . $delta);
     }
   }
@@ -133,10 +133,9 @@ function menu_block_delete_form_submit($form, &$form_state) {
 function _menu_block_block_info() {
   $blocks = array();
   $deltas = variable_get('menu_block_ids', array());
-  foreach (array_keys(module_invoke_all('menu_block_blocks')) as $delta) {
-    $deltas[] = $delta;
-  }
-  foreach ($deltas AS $delta) {
+  $exported = menu_block_get_exported_blocks();
+  $deltas = array_unique(array_merge($deltas, array_keys($exported)));
+  foreach ($deltas as $delta) {
     $blocks[$delta]['info'] = _menu_block_format_title(menu_block_get_config($delta));
     // Menu blocks can't be cached because each menu item can have
     // a custom access callback. menu.inc manages its own caching.
@@ -231,7 +230,7 @@ function menu_block_configure_form($form, &$form_state) {
     }
   }
   // Merge in the default configuration.
-  $config += menu_block_get_config();
+  $config += menu_block_default_config();
 
   // Don't display the config form if this delta is exported to code.
   if (!empty($config['exported_to_code'])) {

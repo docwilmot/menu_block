@@ -36,7 +36,6 @@ function menu_block_menu_tree_content_type_content_types() {
     'js' => array(drupal_get_path('module', 'menu_block') . '/menu-block.js'),
     'css' => array(drupal_get_path('module', 'menu_block') . '/menu-block-admin.css'),
   );
-  unset($common_plugin['defaults']['delta']);
 
   $menus = menu_block_get_all_menus();
   $items = array();

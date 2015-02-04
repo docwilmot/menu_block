@@ -230,57 +230,106 @@ function menu_block_get_all_menus() {
 }
 
 /**
+ * The default menu block configuration.
+ *
+ * @return array
+ */
+function menu_block_default_config() {
+  return array(
+    'parent' => 'main-menu:0',
+    'title_link' => 0,
+    'admin_title' => '',
+    'level' => 1,
+    'follow' => 0,
+    'depth' => 0,
+    'expanded' => 0,
+    'sort' => 0,
+  );
+}
+
+/**
+ * Fetch all exported menu blocks.
+ *
+ * @return array
+ */
+function menu_block_get_exported_blocks() {
+  $blocks = &drupal_static(__FUNCTION__);
+  if (!isset($blocks)) {
+    $blocks = array();
+    // Do not use module_invoke_all() since it rewrites numeric indexes.
+    // Although exported menu blocks should not be using numeric IDs, we
+    // should still prevent them from being changed.
+    foreach (module_implements('menu_block_blocks') as $module) {
+      $blocks += module_invoke($module, 'menu_block_blocks');
+    }
+  }
+  return $blocks;
+}
+
+/**
  * Returns the configuration for the requested block delta.
  *
  * @param string $delta
  *   The delta that uniquely identifies the block in the block system. If
  *   not specified, the default configuration will be returned.
+ *   This is deprecated. Use menu_block_default_config() instead.
  *
  * @return array
  *   An associated array of configuration options.
+ *
+ * @see menu_block_default_config()
  */
 function menu_block_get_config($delta = NULL) {
-  $config = array(
-    'delta'       => $delta,
-    'menu_name'   => 'main-menu',
-    'parent_mlid' => 0,
-    'parent'      => '',
-    'title_link'  => 0,
-    'admin_title' => '',
-    'level'       => 1,
-    'follow'      => 0,
-    'depth'       => 0,
-    'expanded'    => 0,
-    'sort'        => 0,
-  );
+  static $defaults, $exported;
 
-  // Get the block configuration options.
-  if ($delta) {
-    static $blocks;
-    if (!isset($blocks)) {
-      $blocks = module_invoke_all('menu_block_blocks');
-    }
-    if (!empty($blocks[$delta])) {
-      // Merge the default values.
-      $config = $blocks[$delta] + $config;
-      // Set the delta.
-      $config['delta'] = $delta;
-      // Flag the block as exported.
-      $config['exported_to_code'] = TRUE;
-    }
-
-    $config['title_link']  = variable_get("menu_block_{$delta}_title_link",  $config['title_link']);
-    $config['admin_title'] = variable_get("menu_block_{$delta}_admin_title", $config['admin_title']);
-    $config['level']       = variable_get("menu_block_{$delta}_level",       $config['level']);
-    $config['follow']      = variable_get("menu_block_{$delta}_follow",      $config['follow']);
-    $config['depth']       = variable_get("menu_block_{$delta}_depth",       $config['depth']);
-    $config['expanded']    = variable_get("menu_block_{$delta}_expanded",    $config['expanded']);
-    $config['sort']        = variable_get("menu_block_{$delta}_sort",        $config['sort']);
-    $config['parent']      = variable_get("menu_block_{$delta}_parent",      $config['menu_name'] . ':' . $config['parent_mlid']);
-    list($config['menu_name'], $config['parent_mlid']) = explode(':', $config['parent']);
+  if (!isset($defaults)) {
+    $defaults = menu_block_default_config();
   }
 
-  return $config;
+  if (!isset($delta)) {
+    return $defaults;
+  }
+
+  if (!isset($exported)) {
+    $exported = menu_block_get_exported_blocks();
+  }
+
+  $configs = &drupal_static(__FUNCTION__, array());
+  if (!isset($configs[$delta])) {
+    $config = array();
+
+    // Check if this an exported menu block.
+    if (isset($exported[$delta])) {
+      $config += $exported[$delta];
+      $config['exported_to_code'] = TRUE;
+      // Exported blocks generally have 'menu_name' and 'parent_mlid' defined
+      // but not 'parent'
+      if (!isset($config['parent'])) {
+        $config['parent'] = $config['menu_name'] . ':' . $config['parent_mlid'];
+      }
+    }
+
+    // Add in variable overrides and defaults.
+    foreach ($defaults as $key => $default) {
+      $override = variable_get("menu_block_{$delta}_{$key}");
+      if (isset($override)) {
+        $config[$key] = $override;
+      }
+      elseif (!isset($config[$key])) {
+        $config[$key] = $default;
+      }
+    }
+
+    // Split out the 'parent' item into 'menu_name' and 'parent_mlid'.
+    if (!isset($config['menu_name']) && !isset($config['parent_mlid'])) {
+      list($config['menu_name'], $config['parent_mlid']) = explode(':', $config['parent']);
+    }
+
+    $config['delta'] = $delta;
+    $configs[$delta] = $config;
+  }
+
+  return $configs[$delta];
 }
 
 /**
@@ -918,14 +967,10 @@ function menu_block_delete($delta) {
     variable_set('menu_block_ids', $block_ids);
 
     // Remove all the individual variables.
-    variable_del("menu_block_{$delta}_title_link");
-    variable_del("menu_block_{$delta}_admin_title");
-    variable_del("menu_block_{$delta}_parent");
-    variable_del("menu_block_{$delta}_level");
-    variable_del("menu_block_{$delta}_follow");
-    variable_del("menu_block_{$delta}_depth");
-    variable_del("menu_block_{$delta}_expanded");
-    variable_del("menu_block_{$delta}_sort");
+    $variable_keys = array_keys(menu_block_default_config());
+    foreach ($variable_keys as $key) {
+      variable_del("menu_block_{$delta}_{$key}");
+    }
   }
 }
 

@@ -75,8 +75,7 @@ function menu_block_export_form_submit(&$form, &$form_state) {
     $output .= <<<END_OF_CONFIG
 
     '$id' => array(
-      'menu_name'   => {$config['menu_name']},
-      'parent_mlid' => {$config['parent_mlid']},
+      'parent'      => {$config['parent']},
       'title_link'  => {$config['title_link']},
       'admin_title' => '{$config['admin_title']}',
       'level'       => {$config['level']},

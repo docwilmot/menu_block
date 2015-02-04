@@ -44,6 +44,7 @@ function menu_block_menu_tree_content_type_content_types() {
     $items[$menu_name] = $common_plugin;
     $items[$menu_name]['title'] = t('%menu menu tree', array('%menu' => $title));
     $items[$menu_name]['defaults']['menu_name'] = $menu_name;
+    $items[$menu_name]['defaults']['parent'] = $menu_name . ':0';
     $items[$menu_name]['menu_title'] = $title;
     // Custom icons/titles for some menus.
     switch ($menu_name) {

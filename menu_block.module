@@ -862,6 +862,24 @@ function menu_block_get_pane_links_alter(&$links, $pane, $content_type) {
 }
 
 /**
+ * Implements hook_menu_insert().
+ */
+function menu_block_menu_insert($menu) {
+  if (!empty($menu['menu_block_menu_order'])) {
+    menu_block_menu_order_set_menu($menu['menu_name'], TRUE);
+  }
+}
+
+/**
+ * Implements hook_menu_update().
+ */
+function menu_block_menu_update($menu) {
+  if (isset($menu['menu_block_menu_order'])) {
+    menu_block_menu_order_set_menu($menu['menu_name'], $menu['menu_block_menu_order']);
+  }
+}
+
+/**
  * Implements hook_menu_delete().
  */
 function menu_block_menu_delete($menu) {
@@ -872,6 +890,8 @@ function menu_block_menu_delete($menu) {
       menu_block_delete($delta);
     }
   }
+
+  menu_block_menu_order_set_menu($menu['menu_name'], FALSE);
 }
 
 /**
@@ -931,4 +951,37 @@ function node_menu_block_delete(array $config) {
     ->condition('module', 'menu_block')
     ->condition('delta', $config['delta'])
     ->execute();
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function menu_block_form_menu_edit_menu_alter(&$form, &$form_state) {
+  $menus = variable_get('menu_block_menu_order', array('main-menu' => '', 'user-menu' => ''));
+  $form['menu_block_menu_order'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Include this menu in the <em>"the menu selected by the page"</em> menu available to menu blocks.'),
+    '#default_value' => isset($menus[$form['old_name']['#value']]),
+  );
+}
+
+/**
+ * Add or remove a menu from the menu_block_menu_order variable.
+ *
+ * @param string $menu_name
+ *   A menu machine name.
+ * @param mixed $status
+ *   If $status evaluates to TRUE, the menu will be added. If $status evaluates
+ *   to FALSE, the menu will be removed.
+ */
+function menu_block_menu_order_set_menu($menu_name, $status) {
+  $menus = variable_get('menu_block_menu_order', array('main-menu' => '', 'user-menu' => ''));
+  if ($status && !isset($menus[$menu_name])) {
+    $menus[$menu_name] = '';
+    variable_set('menu_block_menu_order', $menus);
+  }
+  elseif (!$status && isset($menus[$menu_name])) {
+    unset($menus[$menu_name]);
+    variable_set('menu_block_menu_order', $menus);
+  }
 }

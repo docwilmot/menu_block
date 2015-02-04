@@ -90,12 +90,12 @@ function _menu_block_form_block_admin_display_form_alter(&$form, $form_state) {
     }
   }
   if (variable_get('menu_block_suppress_core')) {
-    foreach (array_keys(menu_get_menus(FALSE)) AS $delta) {
+    foreach (array_keys(menu_get_menus(FALSE)) as $delta) {
       if (empty($form['blocks']['menu_' . $delta]['region']['#default_value'])) {
         unset($form['blocks']['menu_' . $delta]);
       }
     }
-    foreach (array_keys(menu_list_system_menus()) AS $delta) {
+    foreach (array_keys(menu_list_system_menus()) as $delta) {
       if (empty($form['blocks']['system_' . $delta]['region']['#default_value'])) {
         unset($form['blocks']['system_' . $delta]);
       }
@@ -300,15 +300,15 @@ function menu_block_configure_form($form, &$form_state) {
     '#title' => t('Starting level'),
     '#default_value' => $config['level'],
     '#options' => array(
-      '1'  => t('1st level (primary)'),
-      '2'  => t('2nd level (secondary)'),
-      '3'  => t('3rd level (tertiary)'),
-      '4'  => t('4th level'),
-      '5'  => t('5th level'),
-      '6'  => t('6th level'),
-      '7'  => t('7th level'),
-      '8'  => t('8th level'),
-      '9'  => t('9th level'),
+      '1' => t('1st level (primary)'),
+      '2' => t('2nd level (secondary)'),
+      '3' => t('3rd level (tertiary)'),
+      '4' => t('4th level'),
+      '5' => t('5th level'),
+      '6' => t('6th level'),
+      '7' => t('7th level'),
+      '8' => t('8th level'),
+      '9' => t('9th level'),
     ),
     '#description' => t('Blocks that start with the 1st level will always be visible. Blocks that start with the 2nd level or deeper will only be visible when the trail to the active menu item passes though the block’s starting level.'),
   );
@@ -348,16 +348,16 @@ function menu_block_configure_form($form, &$form_state) {
     '#title' => t('Maximum depth'),
     '#default_value' => $config['depth'],
     '#options' => array(
-      '1'  => '1',
-      '2'  => '2',
-      '3'  => '3',
-      '4'  => '4',
-      '5'  => '5',
-      '6'  => '6',
-      '7'  => '7',
-      '8'  => '8',
-      '9'  => '9',
-      '0'  => t('Unlimited'),
+      '1' => '1',
+      '2' => '2',
+      '3' => '3',
+      '4' => '4',
+      '5' => '5',
+      '6' => '6',
+      '7' => '7',
+      '8' => '8',
+      '9' => '9',
+      '0' => t('Unlimited'),
     ),
     '#description' => t('From the starting level, specify the maximum depth of the menu tree.'),
   );
@@ -523,7 +523,7 @@ function menu_block_admin_settings_form($form, &$form_state) {
  */
 function menu_block_admin_settings_form_submit($form, &$form_state) {
   $menu_order = array();
-  foreach ($form_state['values']['menu_order'] AS $menu_name => $row) {
+  foreach ($form_state['values']['menu_order'] as $menu_name => $row) {
     if ($row['available']) {
       // Add available menu and its weight to list.
       $menu_order[$menu_name] = (int) $row['weight'];
@@ -531,7 +531,7 @@ function menu_block_admin_settings_form_submit($form, &$form_state) {
   }
   // Sort the keys by the weight stored in the value.
   asort($menu_order);
-  foreach ($menu_order AS $menu_name => $weight) {
+  foreach ($menu_order as $menu_name => $weight) {
     // Now that the array is sorted, the weight is redundant data.
     $menu_order[$menu_name] = '';
   }

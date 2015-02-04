@@ -9,7 +9,7 @@
  */
 function menu_block_uninstall() {
   // Delete menu block variables.
-  foreach (variable_get('menu_block_ids', array()) AS $delta) {
+  foreach (variable_get('menu_block_ids', array()) as $delta) {
     variable_del("menu_block_{$delta}_title_link");
     variable_del("menu_block_{$delta}_admin_title");
     variable_del("menu_block_{$delta}_parent");
@@ -48,7 +48,7 @@ function menu_block_update_5100() {
   $enabled_blocks = array();
 
   // Find the old enabled blocks.
-  foreach (variable_get('menu_block_enabled_blocks', array()) AS $old_delta => $enabled) {
+  foreach (variable_get('menu_block_enabled_blocks', array()) as $old_delta => $enabled) {
     list($mid, $level) = explode('-', $old_delta);
     if ($enabled) {
       $enabled_blocks[++$delta] = TRUE;
@@ -71,7 +71,7 @@ function menu_block_update_5100() {
  */
 function menu_block_update_5200() {
   $block_ids = array();
-  foreach (variable_get('menu_block_enabled_blocks', array()) AS $delta => $enabled) {
+  foreach (variable_get('menu_block_enabled_blocks', array()) as $delta => $enabled) {
     if ($enabled) {
       $block_ids[] = $delta; // Build new $menu_block_ids.
       // Convert $menu_block_DELTA_mid to $menu_block_DELTA_menu_name.
@@ -112,7 +112,7 @@ function menu_block_update_5200() {
  */
 function menu_block_update_6200() {
   $menus = menu_get_menus();
-  foreach (variable_get('menu_block_ids', array()) AS $delta) {
+  foreach (variable_get('menu_block_ids', array()) as $delta) {
     // Drupal 6 uses the menu title to create the new menu_name.
     $menu_name = preg_replace('/[^a-zA-Z0-9]/', '-', strtolower(variable_get("menu_block_{$delta}_title", '')));
     // If we can't find the new menu_name, default to the navigation menu.
@@ -130,7 +130,7 @@ function menu_block_update_6200() {
  */
 function menu_block_update_6201() {
   $menus = menu_get_menus();
-  foreach (variable_get('menu_block_ids', array()) AS $delta) {
+  foreach (variable_get('menu_block_ids', array()) as $delta) {
     variable_set("menu_block_{$delta}_parent", variable_get("menu_block_{$delta}_menu_name", 'navigation') . ':0');
     variable_del("menu_block_{$delta}_menu_name");
   }
@@ -141,7 +141,7 @@ function menu_block_update_6201() {
  * Converts to Drupal 7 menu names.
  */
 function menu_block_update_7200() {
-  foreach (variable_get('menu_block_ids', array()) AS $delta) {
+  foreach (variable_get('menu_block_ids', array()) as $delta) {
     $menu_name = '';
     list($old_menu_name, $parent_mlid) = explode(':', variable_get("menu_block_{$delta}_parent", ' : '));
     switch ($old_menu_name) {

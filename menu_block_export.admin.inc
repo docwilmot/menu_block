@@ -56,7 +56,7 @@ function menu_block_export_form_submit(&$form, &$form_state) {
   $output = '';
   $module = check_plain($form_state['values']['name']);
 
-  foreach (variable_get('menu_block_ids', array()) AS $delta) {
+  foreach (variable_get('menu_block_ids', array()) as $delta) {
     $config = menu_block_get_config($delta);
     // Use the constant instead of the constant's value.
     if ($config['menu_name'] == MENU_TREE__CURRENT_PAGE_MENU) {

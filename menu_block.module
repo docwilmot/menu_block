@@ -1030,3 +1030,30 @@ function menu_block_menu_order_set_menu($menu_name, $status) {
     variable_set('menu_block_menu_order', $menus);
   }
 }
+
+/**
+ * Implements hook_menu_link_insert().
+ */
+function menu_block_menu_link_insert($link) {
+  // If a book is being created, updated, or deleted, clear the
+  // menu_block_get_all_menus() cache since it means a change to a book "menu"
+  // that would need to be picked up by book_menu_block_get_menus().
+  if (strpos($link['menu_name'], 'book-toc-') === 0 && !$link['plid']) {
+    cache_clear_all('menu_block_menus:', 'cache_menu', TRUE);
+    drupal_static_reset('menu_block_get_all_menus');
+  }
+}
+
+/**
+ * Implements hook_menu_link_update().
+ */
+function menu_block_menu_link_update($link) {
+  menu_block_menu_link_insert($link);
+}
+
+/**
+ * Implements hook_menu_link_delete().
+ */
+function menu_block_menu_link_delete($link) {
+  menu_block_menu_link_insert($link);
+}

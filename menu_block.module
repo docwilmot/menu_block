@@ -14,58 +14,15 @@ function menu_block_block_info() {
   module_load_include('inc', 'menu_block', 'menu_block.admin');
   return _menu_block_block_info();
 }
-function menu_block_block_configure($delta = '') {
+function menu_block_block_configure($delta = '', $settings = array()) {
   module_load_include('inc', 'menu_block', 'menu_block.admin');
-  return _menu_block_block_configure($delta);
-}
-function menu_block_block_save($delta = '', $edit = array()) {
-  module_load_include('inc', 'menu_block', 'menu_block.admin');
-  return _menu_block_block_save($delta, $edit);
-}
-function menu_block_form_block_admin_display_form_alter(&$form, $form_state) {
-  module_load_include('inc', 'menu_block', 'menu_block.admin');
-  return _menu_block_form_block_admin_display_form_alter($form, $form_state);
+  return _menu_block_block_configure($delta, $settings);
 }
 
 /**
  * Implements hook_menu().
  */
 function menu_block_menu() {
-  // @todo Remove this check if block module is re-added as a dependency.
-  if (module_exists('block')) {
-    $items['admin/structure/block/add-menu-block'] = array(
-      'title' => 'Add menu block',
-      'description' => 'Add a new menu block.',
-      'page callback' => 'drupal_get_form',
-      'page arguments' => array('menu_block_add_block_form'),
-      'access callback' => 'menu_block_access',
-      'type' => MENU_LOCAL_ACTION,
-      'file' => 'menu_block.admin.inc',
-    );
-    $default_theme = variable_get('theme_default', 'bartik');
-    foreach (list_themes() as $key => $theme) {
-      if ($key != $default_theme) {
-        $items['admin/structure/block/list/' . $key . '/add-menu-block'] = array(
-          'title' => 'Add menu block',
-          'description' => 'Add a new menu block.',
-          'page callback' => 'drupal_get_form',
-          'page arguments' => array('menu_block_add_block_form'),
-          'access callback' => 'menu_block_access',
-          'type' => MENU_LOCAL_ACTION,
-          'file' => 'menu_block.admin.inc',
-        );
-      }
-    }
-    $items['admin/structure/block/delete-menu-block'] = array(
-      'title' => 'Delete menu block',
-      'page callback' => 'drupal_get_form',
-      'page arguments' => array('menu_block_delete_form'),
-      'access callback' => 'menu_block_access',
-      'type' => MENU_CALLBACK,
-      'file' => 'menu_block.admin.inc',
-    );
-  }
-
   $items['admin/config/user-interface/menu-block'] = array(
     'title' => 'Menu block',
     'description' => 'Configure menu block.',
@@ -141,27 +98,18 @@ function menu_block_theme(&$existing, $type, $theme, $path) {
 }
 
 /**
- * Implements hook_help().
- */
-function menu_block_help($path, $arg) {
-  switch ($path) {
-    case 'admin/structure/block/manage/%/%':
-      if ($arg[4] != 'menu_block') {
-        break;
-      }
-    case 'admin/help#menu_block':
-    case 'admin/structure/block/add-menu-block':
-      module_load_include('inc', 'menu_block', 'menu_block.pages');
-      return _menu_block_help($path, $arg);
-  }
-}
-
-/**
  * Implements hook_block_view().
  */
-function menu_block_block_view($delta = '') {
-  $config = menu_block_get_config($delta);
-  return menu_tree_build($config);
+function menu_block_block_view($delta = '', $settings = array(), $contexts = array()) {
+  //$config = menu_block_get_config($delta, $settings);
+  // Split out the 'parent' item into 'menu_name' and 'parent_mlid'.
+  if (!isset($settings['menu_name']) || !isset($settings['parent_mlid'])) {
+    list($settings['menu_name'], $settings['parent_mlid']) = explode(':', $settings['parent']);
+  }
+  $settings['delta'] = $delta;
+  dpm($settings);
+  //dpm($config);
+  return menu_tree_build($settings);
 }
 
 /**
@@ -210,7 +158,7 @@ function menu_block_get_all_menus() {
   $all_menus = &drupal_static(__FUNCTION__);
 
   if (!$all_menus) {
-    $cid = 'menu_block_menus:' . $GLOBALS['language']->language;
+    $cid = 'menu_block_menus:' . $GLOBALS['language']->langcode;
     if ($cached = cache_get($cid, 'cache_menu')) {
       $all_menus = $cached->data;
     }
@@ -244,26 +192,9 @@ function menu_block_default_config() {
     'depth' => 0,
     'expanded' => 0,
     'sort' => 0,
+    'menu_name' => 'main-menu',
+    'parent_mlid' => 0,
   );
-}
-
-/**
- * Fetch all exported menu blocks.
- *
- * @return array
- */
-function menu_block_get_exported_blocks() {
-  $blocks = &drupal_static(__FUNCTION__);
-  if (!isset($blocks)) {
-    $blocks = array();
-    // Do not use module_invoke_all() since it rewrites numeric indexes.
-    // Although exported menu blocks should not be using numeric IDs, we
-    // should still prevent them from being changed.
-    foreach (module_implements('menu_block_blocks') as $module) {
-      $blocks += module_invoke($module, 'menu_block_blocks');
-    }
-  }
-  return $blocks;
 }
 
 /**
@@ -279,39 +210,30 @@ function menu_block_get_exported_blocks() {
  *
  * @see menu_block_default_config()
  */
-function menu_block_get_config($delta = NULL) {
-  static $defaults, $exported;
-
+function menu_block_get_config($delta = NULL, $settings = NULL) {
+  static $defaults;
   if (!isset($defaults)) {
     $defaults = menu_block_default_config();
+//dpm($defaults);
   }
+
+  if (!$settings) {
+    $settings = menu_block_default_config();
+    $settings['uniqid'] = uniqid();
+  }
+//dpm($settings);
 
   if (!isset($delta)) {
     return $defaults;
-  }
-
-  if (!isset($exported)) {
-    $exported = menu_block_get_exported_blocks();
   }
 
   $configs = &drupal_static(__FUNCTION__, array());
   if (!isset($configs[$delta])) {
     $config = array();
 
-    // Check if this an exported menu block.
-    if (isset($exported[$delta])) {
-      $config += $exported[$delta];
-      $config['exported_to_code'] = TRUE;
-      // Exported blocks generally have 'menu_name' and 'parent_mlid' defined
-      // but not 'parent'
-      if (!isset($config['parent'])) {
-        $config['parent'] = $config['menu_name'] . ':' . $config['parent_mlid'];
-      }
-    }
-
     // Add in variable overrides and defaults.
     foreach ($defaults as $key => $default) {
-      $override = variable_get("menu_block_{$delta}_{$key}");
+      $override = $settings[$key];
       if (isset($override)) {
         $config[$key] = $override;
       }
@@ -326,10 +248,12 @@ function menu_block_get_config($delta = NULL) {
     }
 
     $config['delta'] = $delta;
-    $configs[$delta] = $config;
+    $config['uniqid'] = $settings['uniqid'];
+    $configs[$settings['uniqid']] = $config;
   }
+//dpm($configs);
 
-  return $configs[$delta];
+  return $configs[$settings['uniqid']];
 }
 
 /**
@@ -372,13 +296,6 @@ function menu_tree_block_data(array &$config) {
   if ($config['level'] > 1 || $config['parent_mlid']) {
     if ($config['parent_mlid']) {
       $parent_item = menu_link_load($config['parent_mlid']);
-      if (!$parent_item) {
-        watchdog('menu_block', "Menu block @delta is set to use parent menu link @plid but the menu link was not loadable or does not exist.", array(
-          '@delta' => $config['delta'],
-          '@plid' => $config['parent_mlid'],
-        ), WATCHDOG_ERROR);
-        $parent_item = NULL;
-      }
       menu_tree_prune_tree($tree, $config['level'], $parent_item);
     }
     else {
@@ -417,7 +334,7 @@ function menu_tree_block_data(array &$config) {
  */
 function menu_block_get_current_page_menu() {
   // Retrieve the list of available menus.
-  $menu_order = variable_get('menu_block_menu_order', array('main-menu' => '', 'user-menu' => ''));
+  $menu_order = config_get('menu_block.settings', 'menu_block_menu_order');
 
   // Check for regular expressions as menu keys.
   $patterns = array();
@@ -520,7 +437,7 @@ function menu_tree_build(array &$config) {
   // Get the raw menu tree data.
   $tree = menu_tree_block_data($config);
   $title = menu_block_get_title($config['title_link']);
-
+//dpm($config['title_link']);
   // Create a renderable tree.
   $data = array();
   $data['subject_array'] = $title;
@@ -902,20 +819,6 @@ function book_menu_block_get_sort_menus() {
   );
 }
 
-/**
- * Implements hook_get_pane_links_alter().
- */
-function menu_block_get_pane_links_alter(&$links, $pane, $content_type) {
-  if ($pane->type === 'menu_tree') {
-    if (in_array($pane->subtype, array_keys(menu_get_menus()))) {
-      $links['top'][] = array(
-        'title' => t('Edit menu links'),
-        'href' => url('admin/structure/menu/manage/' . $pane->subtype, array('absolute' => TRUE)),
-        'attributes' => array('target' => array('_blank')),
-      );
-    }
-  }
-}
 
 /**
  * Implements hook_menu_insert().
@@ -939,11 +842,18 @@ function menu_block_menu_update($menu) {
  * Implements hook_menu_delete().
  */
 function menu_block_menu_delete($menu) {
-  // Delete menu block variables.
-  foreach (variable_get('menu_block_ids', array()) as $delta) {
-    $config = menu_block_get_config($delta);
-    if ($config['menu_name'] === $menu['menu_name']) {
-      menu_block_delete($delta);
+  // If a menu is deleted, we need to search all enabled layouts to see if any 
+  // Menu Block was using that menu.
+  // @todo: an alternative is simply dont display the block and set a message
+  // that the menu is missing to allow the user to simply change the menu.
+  $all_layouts = layout_get_all_configs('layout');
+  foreach($all_layouts as $layout_name => $active_layouts) {
+    foreach($active_layouts['content'] as $uuid => $block) {
+      if($block['data']['module'] == 'menu_block') {
+        if($block['data']['settings']['block_settings']['menu_name'] == $menu['menu_name']) {
+          menu_block_delete($settings, $layout_name, $uuid);
+        }
+      }
     }
   }
 
@@ -956,60 +866,24 @@ function menu_block_menu_delete($menu) {
  * @param string $delta
  *   The delta of the menu block.
  */
-function menu_block_delete($delta) {
-  // Since this used to be a form callback, prevent unintentional uses.
-  if (is_array($delta)) {
-    variable_set('menu_rebuild_needed', TRUE);
-    return;
-  }
-
-  $block_ids = variable_get('menu_block_ids', array());
-  $index = array_search($delta, $block_ids);
-  if ($index !== FALSE && $config = menu_block_get_config($delta)) {
-    module_invoke_all('menu_block_delete', $config);
-
-    // Remove the delta from the list of custom IDs.
-    unset($block_ids[$index]);
-    sort($block_ids);
-    variable_set('menu_block_ids', $block_ids);
-
-    // Remove all the individual variables.
-    $variable_keys = array_keys(menu_block_default_config());
-    foreach ($variable_keys as $key) {
-      variable_del("menu_block_{$delta}_{$key}");
-    }
-  }
+function menu_block_delete($settings, $layout_name, $uuid) {
+  $config = config('layout.layout.' . $layout_name);
+  $config->clear('content.' . $uuid);
+  $config->save();
+  cache_flush('layout_path');
+  
+  // This is probably unnecessary. Brought over from D7 version where it was
+  // called to do database deletion of blocks. 
+  // Keeping in case anyone had actually used this hook for something else.
+  module_invoke_all('menu_block_delete', $settings);
 }
 
-/**
- * Implements hook_menu_block_delete() on behalf of block.module.
- */
-function block_menu_block_delete(array $config) {
-  db_delete('block')
-    ->condition('module', 'menu_block')
-    ->condition('delta', $config['delta'])
-    ->execute();
-  db_delete('block_role')
-    ->condition('module', 'menu_block')
-    ->condition('delta', $config['delta'])
-    ->execute();
-}
-
-/**
- * Implements hook_menu_block_delete() on behalf of node.module.
- */
-function node_menu_block_delete(array $config) {
-  db_delete('block_node_type')
-    ->condition('module', 'menu_block')
-    ->condition('delta', $config['delta'])
-    ->execute();
-}
 
 /**
  * Implements hook_form_FORM_ID_alter().
  */
 function menu_block_form_menu_edit_menu_alter(&$form, &$form_state) {
-  $menus = variable_get('menu_block_menu_order', array('main-menu' => '', 'user-menu' => ''));
+  $menus = config_get('menu_block.settings', 'menu_block_menu_order');
   $form['menu_block_menu_order'] = array(
     '#type' => 'checkbox',
     '#title' => t('Include this menu in the <em>"the menu selected by the page"</em> menu available to menu blocks.'),
@@ -1027,40 +901,43 @@ function menu_block_form_menu_edit_menu_alter(&$form, &$form_state) {
  *   to FALSE, the menu will be removed.
  */
 function menu_block_menu_order_set_menu($menu_name, $status) {
-  $menus = variable_get('menu_block_menu_order', array('main-menu' => '', 'user-menu' => ''));
+  $config = config('menu_block.settings');
+  $menus = $config->get('menu_block_menu_order');
   if ($status && !isset($menus[$menu_name])) {
     $menus[$menu_name] = '';
-    variable_set('menu_block_menu_order', $menus);
+    $config->set('menu_block_menu_order', $menus);
   }
   elseif (!$status && isset($menus[$menu_name])) {
     unset($menus[$menu_name]);
-    variable_set('menu_block_menu_order', $menus);
+    $config->set('menu_block_menu_order', $menus);
+  }
+  $config->save();
+}
+
+/**
+ * Validates the follow element of the block configuration form.
+ */
+function menu_block_configure_form_follow_validate($element, &$form_state) {
+  dpm($form_state);
+  // The value of "follow" stored in the database/config array is either FALSE
+  // or the value of the "follow_parent" form element.
+  if ($form_state['values']['block_settings']['follow'] && !empty($form_state['values']['block_settings']['follow_parent'])) {
+    $form_state['values']['block_settings']['follow'] = $form_state['values']['block_settings']['follow_parent'];
   }
 }
 
+
 /**
- * Implements hook_menu_link_insert().
+ * Validates the parent element of the block configuration form.
  */
-function menu_block_menu_link_insert($link) {
-  // If a book is being created, updated, or deleted, clear the
-  // menu_block_get_all_menus() cache since it means a change to a book "menu"
-  // that would need to be picked up by book_menu_block_get_menus().
-  if (strpos($link['menu_name'], 'book-toc-') === 0 && !$link['plid']) {
-    cache_clear_all('menu_block_menus:', 'cache_menu', TRUE);
-    drupal_static_reset('menu_block_get_all_menus');
+function menu_block_configure_form_parent_validate($element, &$form_state) {
+  // Determine the fixed parent item's menu and mlid.
+  list($menu_name, $parent_mlid) = explode(':', $form_state['values']['block_settings']['parent']);
+  $form_state['values']['block_settings']['parent_mlid'] = (int) $parent_mlid;
+
+  if ($parent_mlid) {
+    // If mlid is set, its menu overrides the menu_name option.
+    $form_state['values']['block_settings']['menu_name'] = $menu_name;
   }
 }
 
-/**
- * Implements hook_menu_link_update().
- */
-function menu_block_menu_link_update($link) {
-  menu_block_menu_link_insert($link);
-}
-
-/**
- * Implements hook_menu_link_delete().
- */
-function menu_block_menu_link_delete($link) {
-  menu_block_menu_link_insert($link);
-}

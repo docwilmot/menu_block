@@ -107,8 +107,8 @@ function menu_block_block_view($delta = '', $settings = array(), $contexts = arr
     list($settings['menu_name'], $settings['parent_mlid']) = explode(':', $settings['parent']);
   }
   $settings['delta'] = $delta;
-  dpm($settings);
-  //dpm($config);
+  //dpm($settings);
+  ////dpm($config);
   return menu_tree_build($settings);
 }
 
@@ -214,14 +214,14 @@ function menu_block_get_config($delta = NULL, $settings = NULL) {
   static $defaults;
   if (!isset($defaults)) {
     $defaults = menu_block_default_config();
-//dpm($defaults);
+////dpm($defaults);
   }
 
   if (!$settings) {
     $settings = menu_block_default_config();
     $settings['uniqid'] = uniqid();
   }
-//dpm($settings);
+////dpm($settings);
 
   if (!isset($delta)) {
     return $defaults;
@@ -251,7 +251,7 @@ function menu_block_get_config($delta = NULL, $settings = NULL) {
     $config['uniqid'] = $settings['uniqid'];
     $configs[$settings['uniqid']] = $config;
   }
-//dpm($configs);
+////dpm($configs);
 
   return $configs[$settings['uniqid']];
 }
@@ -437,11 +437,11 @@ function menu_tree_build(array &$config) {
   // Get the raw menu tree data.
   $tree = menu_tree_block_data($config);
   $title = menu_block_get_title($config['title_link']);
-//dpm($config['title_link']);
   // Create a renderable tree.
   $data = array();
   $data['subject_array'] = $title;
-  $data['subject'] = drupal_render($title);
+  $data['subject'] = $title;
+//dpm($data['subject']);
   $data['content'] = array();
   if (!empty($tree) && $output = menu_block_tree_output($tree, $config)) {
     $data['content']['#content'] = $output;
@@ -472,23 +472,11 @@ function menu_block_get_title($render_title_as_link = TRUE) {
 
   if (is_string($menu_item)) {
     // The tree's title is a menu title, a normal string.
-    $title = array('#markup' => check_plain($menu_item));
-  }
-  elseif ($render_title_as_link) {
-    // The tree's title is a menu item with a link.
-    if (!empty($menu_item['in_active_trail'])) {
-      $menu_item['localized_options']['attributes']['class'][] = 'active-trail';
-    }
-    $title = array(
-      '#type' => 'link',
-      '#title' => $menu_item['title'],
-      '#href' => $menu_item['href'],
-      '#options' => $menu_item['localized_options'],
-    );
+    $title = check_plain($menu_item);
   }
   // The tree's title is a menu item.
   else {
-    $title = array('#markup' => check_plain($menu_item['title']));
+    $title = check_plain($menu_item['title']);
   }
   return $title;
 }
@@ -918,7 +906,7 @@ function menu_block_menu_order_set_menu($menu_name, $status) {
  * Validates the follow element of the block configuration form.
  */
 function menu_block_configure_form_follow_validate($element, &$form_state) {
-  dpm($form_state);
+  //dpm($form_state);
   // The value of "follow" stored in the database/config array is either FALSE
   // or the value of the "follow_parent" form element.
   if ($form_state['values']['block_settings']['follow'] && !empty($form_state['values']['block_settings']['follow_parent'])) {

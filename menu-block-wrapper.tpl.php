@@ -18,6 +18,6 @@
  * @see template_preprocess_menu_block_wrapper()
  */
 ?>
-<div class="<?php print implode(' ', $classes); ?>">
+<div class="<?php print implode(' ', $classes_array); ?>">
   <?php print render($content); ?>
 </div>

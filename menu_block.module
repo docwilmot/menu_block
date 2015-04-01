@@ -145,7 +145,7 @@ function template_preprocess_menu_block_wrapper(&$variables) {
  * A copy of drupal_clean_css_identifier() that cleans up colon characters.
  */
 function menu_block_clean_css_identifier($identifier, $filter = array(' ' => '-', '_' => '-', '/' => '-', '[' => '-', ']' => '', ':' => '-')) {
-  return drupal_clean_css_identifier($identifier, $filter);
+  return backdrop_clean_css_identifier($identifier, $filter);
 }
 
 /**
@@ -564,8 +564,44 @@ function menu_tree_trim_active_path(array &$tree) {
  *   array The menu tree to sort.
  */
 function menu_tree_sort_active_path(array &$tree) {
-  module_load_include('inc', 'menu_block', 'menu_block.sort');
-  _menu_tree_sort_active_path($tree);
+  // To traverse the original tree down the active trail, we use a pointer.
+  $current_level =& $tree;
+
+  // Traverse the tree along the active trail.
+  do {
+    $next_level = $sort = $first_key = FALSE;
+    foreach ($current_level as $key => &$value) {
+      // Save the first key for later use.
+      if (!$first_key) {
+        $first_key = $key;
+      }
+      if ($current_level[$key]['link']['in_active_trail'] && $current_level[$key]['below']) {
+        // Don't re-sort if its already sorted.
+        if ($key != $first_key) {
+          // Create a new key that will come before the first key.
+          list($first_key, ) = explode(' ', $first_key);
+          $first_key--;
+          list(, $new_key) = explode(' ', $key, 2);
+          $new_key = "$first_key $new_key";
+          // Move the item to the new key.
+          $current_level[$new_key] = $current_level[$key];
+          unset($current_level[$key]);
+          $key = $new_key;
+          $sort = TRUE; // Flag sorting.
+        }
+        $next_level = $key; // Flag subtree.
+        break;
+      }
+    }
+    // Sort this level.
+    if ($sort) {
+      ksort($current_level);
+    }
+    // Continue in the subtree, if it exists.
+    if ($next_level) {
+      $current_level =& $current_level[$next_level]['below'];
+    }
+  } while ($next_level);
 }
 
 /**
@@ -637,8 +673,47 @@ function menu_tree_prune_tree(array &$tree, $level, array $parent_item = NULL) {
  *   The level which the tree will be pruned to: 'active' or 'child'.
  */
 function menu_tree_prune_active_tree(array &$tree, $level) {
-  module_load_include('inc', 'menu_block', 'menu_block.follow');
-  _menu_tree_prune_active_tree($tree, $level);
+  do {
+    $found_active_trail = FALSE;
+    // Examine each element at this level for the active trail.
+    foreach ($tree as $key => &$value) {
+      if ($tree[$key]['link']['in_active_trail']) {
+        $found_active_trail = TRUE;
+        // If the active trail item has children, examine them.
+        if ($tree[$key]['below']) {
+          // If we are pruning to the active menu item's level, check if this
+          // is the active menu item by checking its children.
+          if ($level == 'active') {
+            foreach ($tree[$key]['below'] as $child_key => &$value) {
+              if ($tree[$key]['below'][$child_key]['link']['in_active_trail']) {
+                // Get the title for the pruned tree.
+                menu_block_set_title($tree[$key]['link']);
+                $tree = $tree[$key]['below'];
+                // Continue in the pruned tree.
+                break 2;
+              }
+            }
+            // If we've found the active item, we're done.
+            break 2;
+          }
+          // Set the title for the pruned tree.
+          menu_block_set_title($tree[$key]['link']);
+          // If we are pruning to the children of the active menu item, just
+          // prune the tree to the children of the item in the active trail.
+          $tree = $tree[$key]['below'];
+          // Continue in the pruned tree.
+          break;
+        }
+        // If the active menu item has no children, we're done.
+        else {
+          if ($level == 'child') {
+            $tree = array();
+          }
+          break 2;
+        }
+      }
+    }
+  } while ($found_active_trail);
 }
 
 /**

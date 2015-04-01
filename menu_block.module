@@ -86,8 +86,6 @@ function menu_block_block_view($delta = '', $settings = array(), $contexts = arr
   if (!isset($settings['menu_name']) || !isset($settings['parent_mlid'])) {
     list($settings['menu_name'], $settings['parent_mlid']) = explode(':', $settings['parent']);
   }
-  //dpm($settings);
-  ////dpm($config);
   return menu_tree_build($settings);
 }
 
@@ -359,7 +357,6 @@ function menu_tree_build(array &$config) {
   $data = array();
   $data['subject_array'] = $title;
   $data['subject'] = $title;
-//dpm($data['subject']);
   $data['content'] = array();
   if (!empty($tree) && $output = menu_block_tree_output($tree, $config)) {
     $data['content']['#content'] = $output;
@@ -890,7 +887,6 @@ function menu_block_menu_order_set_menu($menu_name, $status) {
  * Validates the follow element of the block configuration form.
  */
 function menu_block_configure_form_follow_validate($element, &$form_state) {
-  //dpm($form_state);
   // The value of "follow" stored in the database/config array is either FALSE
   // or the value of the "follow_parent" form element.
   if ($form_state['values']['block_settings']['follow'] && !empty($form_state['values']['block_settings']['follow_parent'])) {

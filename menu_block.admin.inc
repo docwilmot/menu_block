@@ -76,7 +76,6 @@ function _menu_block_format_title($config) {
  */
 function _menu_block_block_configure($delta = '', $settings = array()) {
   // Create a pseudo form state.
-  // $form_state = array('values' => menu_block_get_config($delta, $settings));
   // Merge in the default configuration.
   if(empty($settings)) {
     $settings = menu_block_default_config();

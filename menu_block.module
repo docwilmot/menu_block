@@ -101,7 +101,6 @@ function menu_block_theme(&$existing, $type, $theme, $path) {
  * Implements hook_block_view().
  */
 function menu_block_block_view($delta = '', $settings = array(), $contexts = array()) {
-  //$config = menu_block_get_config($delta, $settings);
   // Split out the 'parent' item into 'menu_name' and 'parent_mlid'.
   if (!isset($settings['menu_name']) || !isset($settings['parent_mlid'])) {
     list($settings['menu_name'], $settings['parent_mlid']) = explode(':', $settings['parent']);
@@ -195,65 +194,6 @@ function menu_block_default_config() {
     'menu_name' => 'main-menu',
     'parent_mlid' => 0,
   );
-}
-
-/**
- * Returns the configuration for the requested block delta.
- *
- * @param string $delta
- *   The delta that uniquely identifies the block in the block system. If
- *   not specified, the default configuration will be returned.
- *   This is deprecated. Use menu_block_default_config() instead.
- *
- * @return array
- *   An associated array of configuration options.
- *
- * @see menu_block_default_config()
- */
-function menu_block_get_config($delta = NULL, $settings = NULL) {
-  static $defaults;
-  if (!isset($defaults)) {
-    $defaults = menu_block_default_config();
-////dpm($defaults);
-  }
-
-  if (!$settings) {
-    $settings = menu_block_default_config();
-    $settings['uniqid'] = uniqid();
-  }
-////dpm($settings);
-
-  if (!isset($delta)) {
-    return $defaults;
-  }
-
-  $configs = &drupal_static(__FUNCTION__, array());
-  if (!isset($configs[$delta])) {
-    $config = array();
-
-    // Add in variable overrides and defaults.
-    foreach ($defaults as $key => $default) {
-      $override = $settings[$key];
-      if (isset($override)) {
-        $config[$key] = $override;
-      }
-      elseif (!isset($config[$key])) {
-        $config[$key] = $default;
-      }
-    }
-
-    // Split out the 'parent' item into 'menu_name' and 'parent_mlid'.
-    if (!isset($config['menu_name']) && !isset($config['parent_mlid'])) {
-      list($config['menu_name'], $config['parent_mlid']) = explode(':', $config['parent']);
-    }
-
-    $config['delta'] = $delta;
-    $config['uniqid'] = $settings['uniqid'];
-    $configs[$settings['uniqid']] = $config;
-  }
-////dpm($configs);
-
-  return $configs[$settings['uniqid']];
 }
 
 /**

@@ -54,25 +54,6 @@ function menu_block_menu_alter(&$items) {
 }
 
 /**
- * Implements hook_ctools_plugin_directory().
- */
-function menu_block_ctools_plugin_directory($module, $plugin) {
-  if ($plugin == 'content_types') {
-    return 'plugins/' . $plugin;
-  }
-}
-
-/**
- * Implements hook_ctools_block_info().
- *
- * @see ctools_block_content_type_content_types().
- */
-function menu_block_ctools_block_info($module, $delta, &$info) {
-  $info['icon'] = 'icon_contrib_menu.png';
-  $info['category'] = t('Menus');
-}
-
-/**
  * Implements hook_theme().
  */
 function menu_block_theme(&$existing, $type, $theme, $path) {
@@ -87,7 +68,7 @@ function menu_block_theme(&$existing, $type, $theme, $path) {
   return array(
     'menu_block_wrapper' => array(
       'template' => 'menu-block-wrapper',
-      'variables' => array('content' => array(), 'config' => array(), 'delta' => NULL),
+      'variables' => array('content' => array(), 'config' => array()),
       'pattern' => 'menu_block_wrapper__',
     ),
     'menu_block_menu_order' => array(
@@ -105,7 +86,6 @@ function menu_block_block_view($delta = '', $settings = array(), $contexts = arr
   if (!isset($settings['menu_name']) || !isset($settings['parent_mlid'])) {
     list($settings['menu_name'], $settings['parent_mlid']) = explode(':', $settings['parent']);
   }
-  $settings['delta'] = $delta;
   //dpm($settings);
   ////dpm($config);
   return menu_tree_build($settings);
@@ -134,7 +114,6 @@ function menu_block_block_view_alter(&$data, $block) {
  * @see menu-block-wrapper.tpl.php
  */
 function template_preprocess_menu_block_wrapper(&$variables) {
-  $variables['classes_array'][] = 'menu-block-' . $variables['delta'];
   $variables['classes_array'][] = 'menu-name-' . $variables['config']['menu_name'];
   $variables['classes_array'][] = 'parent-mlid-' . menu_block_clean_css_identifier($variables['config']['parent_mlid']);
   $variables['classes_array'][] = 'menu-level-' . $variables['config']['level'];
@@ -329,7 +308,6 @@ function menu_block_get_current_page_menu() {
  * @param array $config
  *   An array of configuration options that specifies how to build the
  *   menu tree and its title.
- *   - delta: (string) The menu_block's block delta.
  *   - menu_name: (string) The machine name of the requested menu. Can also be
  *     set to MENU_TREE__CURRENT_PAGE_MENU to use the menu selected by the page.
  *   - parent_mlid: (int) The mlid of the item that should root the tree. Use 0
@@ -386,12 +364,10 @@ function menu_tree_build(array &$config) {
   if (!empty($tree) && $output = menu_block_tree_output($tree, $config)) {
     $data['content']['#content'] = $output;
     $data['content']['#theme'] = array(
-      'menu_block_wrapper__' . str_replace('-', '_', $config['delta']),
       'menu_block_wrapper__' . str_replace('-', '_', $config['menu_name']),
       'menu_block_wrapper'
     );
     $data['content']['#config'] = $config;
-    $data['content']['#delta'] = $config['delta'];
   }
 
   return $data;
@@ -708,12 +684,10 @@ function menu_block_tree_output(array &$tree, array $config = array()) {
 
   // Create context if no config was provided.
   if (empty($config)) {
-    $config['delta'] = 0;
     // Grab any menu item to find the menu_name for this tree.
     $menu_item = current($tree);
     $config['menu_name'] = $menu_item['link']['menu_name'];
   }
-  $hook_delta = str_replace('-', '_', $config['delta']);
   $hook_menu_name = str_replace('-', '_', $config['menu_name']);
 
   // Pull out just the menu links we are going to render so that we
@@ -769,7 +743,6 @@ function menu_block_tree_output(array &$tree, array $config = array()) {
 
     // Allow menu-specific theme overrides.
     $element['#theme'] = array(
-      'menu_link__menu_block__' . $hook_delta,
       'menu_link__menu_block__' . $hook_menu_name,
       'menu_link__menu_block',
       'menu_link__' . $hook_menu_name,
@@ -781,7 +754,6 @@ function menu_block_tree_output(array &$tree, array $config = array()) {
     $element['#localized_options'] = !empty($data['link']['localized_options']) ? $data['link']['localized_options'] : array();
     $element['#below'] = $data['below'] ? menu_block_tree_output($data['below'], $config) : $data['below'];
     $element['#original_link'] = $data['link'];
-    $element['#bid'] = array('module' => 'menu_block', 'delta' => $config['delta']);
     // Index using the link's unique mlid.
     $build[$data['link']['mlid']] = $element;
   }
@@ -791,7 +763,6 @@ function menu_block_tree_output(array &$tree, array $config = array()) {
     // Add the theme wrapper for outer markup.
     // Allow menu-specific theme overrides.
     $build['#theme_wrappers'][] = array(
-      'menu_tree__menu_block__' . $hook_delta,
       'menu_tree__menu_block__' . $hook_menu_name,
       'menu_tree__menu_block',
       'menu_tree__' . $hook_menu_name,
@@ -866,8 +837,6 @@ function menu_block_menu_delete($menu) {
 /**
  * Delete a menu block.
  *
- * @param string $delta
- *   The delta of the menu block.
  */
 function menu_block_delete($settings, $layout_name, $uuid) {
   $config = config('layout.layout.' . $layout_name);
